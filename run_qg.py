@@ -5,6 +5,7 @@ import os
 import sys
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
+import time
 
 import numpy as np
 import torch
@@ -23,6 +24,12 @@ from transformers import (
 from trainer import Trainer
 from data_collator import T2TDataCollator
 from utils import freeze_embeds, assert_not_all_frozen
+
+# Why I need to load custom pytorch dataset?
+# from torchtext.datasets import SQuAD1, SQuAD2
+
+# Nope this should be that I need
+from datasets import load_dataset
 
 MODEL_TYPE_TO_TOKENIZER = {
     "t5": T5Tokenizer,
@@ -95,7 +102,7 @@ def main(args_file=None):
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
-
+    
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
 
     if (len(sys.argv) == 2 and sys.argv[1].endswith(".json")) or args_file is not None:
@@ -107,6 +114,10 @@ def main(args_file=None):
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     assert model_args.model_type in list(MODEL_TYPE_TO_TOKENIZER.keys()), "model type should be 't5' or 'bart'"
+
+    # Git issue #55 and some others
+    if training_args.do_train:
+        training_args.evaluate_during_training = True
 
     if (
         os.path.exists(training_args.output_dir)
@@ -150,6 +161,17 @@ def main(args_file=None):
         model_args.tokenizer_name_or_path if model_args.tokenizer_name_or_path else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
     )
+
+    #print(tokenizer)
+    if False:
+        if model_args.model_type == 't5':
+            tokenizer = T5Tokenizer.from_pretrained("t5-base")
+        else:
+            tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")     
+    #print(T5Tokenizer.from_pretrained("t5-base"))
+    tokenizer.add_tokens(['<sep>', '<hl>'])
+
+
     model = AutoModelForSeq2SeqLM.from_pretrained(
         model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
@@ -165,9 +187,19 @@ def main(args_file=None):
     # Get datasets
     logger.info('loading dataset')
     
+    #train_dataset, valid_dataset = load_dataset('squad', split=['train', 'validation'])
+    
+    #squad2a = load_dataset('json', data_files={'train': 'data/squad2a/dev-v2.0a.json', 'test': 'data/squad2a/train-v2.0a.json'}, field='data')
+    #train_dataset = squad2a['train']
+    #valid_dataset = squad2a['test']
+    
+    #train_dataset, valid_dataset = SQuAD1()
     train_dataset = torch.load(data_args.train_file_path) if training_args.do_train else None
     valid_dataset = torch.load(data_args.valid_file_path) if training_args.do_eval else None
     
+    #train_dataset = torch.load("data/squad-v1.1-pt-master/train-v1.1-pt.json") if training_args.do_train else None
+    #valid_dataset = torch.load("data/squad-v1.1-pt-master/dev-v1.1-pt.json") if training_args.do_eval else None
+
     logger.info('finished loading dataset')
 
     # Initialize data_collator
@@ -185,7 +217,8 @@ def main(args_file=None):
         train_dataset=train_dataset,
         eval_dataset=valid_dataset,
         data_collator=data_collator,
-        prediction_loss_only=True,
+        #This should be included as TrainingArguments
+        #prediction_loss_only=True,
         label_smoothing=model_args.label_smoothing
     )
 

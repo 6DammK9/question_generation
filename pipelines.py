@@ -1,8 +1,18 @@
 import itertools
 import logging
+import re
 from typing import Optional, Dict, Union
 
-from nltk import sent_tokenize
+import nltk
+
+# Git PR #35
+def _nltk_downloader():
+    try:
+        nltk.download('punkt', quiet=True)
+    except LookupError as e:
+        print(e)
+
+_nltk_downloader()
 
 import torch
 from transformers import(
@@ -87,7 +97,8 @@ class QGPipeline:
             max_length=32,
         )
         
-        dec = [self.ans_tokenizer.decode(ids, skip_special_tokens=False) for ids in outs]
+        #Git Issue 90 solution
+        dec = [self.ans_tokenizer.decode(ids, skip_special_tokens=True) for ids in outs]
         answers = [item.split('<sep>') for item in dec]
         answers = [i[:-1] for i in answers]
         
@@ -112,7 +123,7 @@ class QGPipeline:
         return inputs
     
     def _prepare_inputs_for_ans_extraction(self, text):
-        sents = sent_tokenize(text)
+        sents = nltk.sent_tokenize(text)
 
         inputs = []
         for i in range(len(sents)):
@@ -134,12 +145,24 @@ class QGPipeline:
         for i, answer in enumerate(answers):
             if len(answer) == 0: continue
             for answer_text in answer:
-                sent = sents[i]
+                sent = sents[i].lower()
                 sents_copy = sents[:]
+
+                #Git PR 65
+                answer_text = re.sub("<pad> | <pad>", "", answer_text)
+
+                answer_text = answer_text.strip().lower()
                 
-                answer_text = answer_text.strip()
-                
-                ans_start_idx = sent.index(answer_text)
+                #Git Issue 90 solution
+                if answer_text not in sent:
+                    continue
+
+                #Git PR 65
+                #Git Issue 90 error
+                try:
+                    ans_start_idx = sent.index(answer_text)
+                except:
+                    continue
                 
                 sent = f"{sent[:ans_start_idx]} <hl> {answer_text} <hl> {sent[ans_start_idx + len(answer_text): ]}"
                 sents_copy[i] = sent

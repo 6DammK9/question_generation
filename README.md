@@ -20,6 +20,17 @@
   - [Applications 🚀](#applications-)
   - [Relevant papers](#relevant-papers)
 
+## Modded by DammK
+As part of my NLP course project. Included recent fix about using current framework. (See [My built cmd](https://github.com/6DammK9/ml-ai-init-cmds/blob/main/cmds.md))
+```
+# cs6493 project (QG task)
+# 3.0.2 has incapability with Python 3.9. Hence transformers must be newer then 4.0
+conda install -c conda-forge transformers
+conda install -c conda-forge nltk
+pip install git+https://github.com/Maluuba/nlg-eval.git@master
+```
+Target is simple: Make everything runs once again, then include recent `qg-hl` models.
+To test the scripts, run `zz*.ipynb` instead. Command lines are included.
 
 ## Project Details
 Question generation is the task of automatically generating questions from a text paragraph. The most straight-forward way for this is answer aware question generation. In answer aware question generation the model is presented with the answer and the passage and asked to generate a question for that answer by considering the passage context. While there are many papers available for QG task, it's still not as mainstream as QA. One of the reasons is most of the earlier papers use complicated models/processing pipelines and have no pre-trained models available. Few recent papers, specifically UniLM and ProphetNet have SOTA pre-trained weights availble for QG but the usage seems quite complicated. 

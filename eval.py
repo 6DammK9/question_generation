@@ -8,6 +8,9 @@ from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, HfArgumentParser
 
 from data_collator import T2TDataCollator
 
+from datasets import load_dataset
+
+
 device = 'cuda' if torch.cuda.is_available else 'cpu'
 
 logger = logging.getLogger(__name__)
@@ -66,7 +69,9 @@ def main():
     )
     model = AutoModelForSeq2SeqLM.from_pretrained(args.model_name_or_path)
 
-    valid_dataset = torch.load(args.valid_file_path)
+    train_dataset, valid_dataset = load_dataset('squad', split=['train', 'validation'])
+
+    #valid_dataset = torch.load(args.valid_file_path)
     collator = T2TDataCollator(
         tokenizer=tokenizer,
         model_type=args.model_type,

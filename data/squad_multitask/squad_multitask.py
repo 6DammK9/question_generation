@@ -23,10 +23,12 @@ import logging
 import os
 
 import nltk
-nltk.download('punkt')
+nltk.download('punkt', quiet=True)
 
 import nlp
 
+print("HELLO WORLD")
+print(nlp.__version__) #0.4.0
 
 _CITATION = """\
 @article{2016arXiv160605250R,

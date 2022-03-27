@@ -4,9 +4,11 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 import torch
-import nlp
+#import nlp
+import datasets
 from transformers import T5Tokenizer, BartTokenizer, HfArgumentParser
-
+import time
+import numpy
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +67,9 @@ class DataProcessor:
             self.sep_token = "[SEP]"
   
     def process(self, dataset):
+        #Original solution.
+        dataset = dataset.map(self._convert_to_nlp_020)
+
         if self.model_type == "t5":
             dataset = dataset.map(self._add_eos_examples)
         
@@ -83,6 +88,12 @@ class DataProcessor:
         example['target_text'] = example['target_text'].replace("{sep_token}", self.sep_token)
         return example
   
+    def _convert_to_nlp_020(selc, example):
+        print (example)
+        example['source_text'] = numpy.array(example['question'])
+        example['target_text'] = numpy.array(example['answers'])
+        return example
+
     # tokenize the examples
     def _convert_to_features(self, example_batch):
         source_encoding = self.tokenizer.batch_encode_plus(
@@ -110,19 +121,19 @@ class DataProcessor:
 
 
 def filter_qa(example):
-    return example['task'] == 'qa'
+    return 'task' in example and example['task'] == 'qa'
 
 def filter_qg(example):
-    return example['task'] == 'qg'
+    return 'task' in example and example['task'] == 'qg'
 
 def filter_e2e_qg(example):
-    return example['task'] == 'e2e_qg'
+    return 'task' in example and example['task'] == 'e2e_qg'
 
 def filter_ans_ext(example):
-    return example['task'] == 'ans_ext'
+    return 'task' in example and example['task'] == 'ans_ext'
 
 def filter_multi(example):
-    return example['task'] != 'e2e_qg'
+    return 'task' in example and example['task'] != 'e2e_qg'
 
 
 TASK_TO_FILTER_FN = {
@@ -132,7 +143,6 @@ TASK_TO_FILTER_FN = {
     'ans_ext': filter_ans_ext,
     'multi': filter_multi
 }
-
 
 def main():
     parser = HfArgumentParser((DataTrainingArguments,))
@@ -152,8 +162,49 @@ def main():
     
     tokenizer.add_tokens(['<sep>', '<hl>'])
     
-    train_dataset = nlp.load_dataset(data_args.dataset_path, name=data_args.qg_format, split=nlp.Split.TRAIN)
-    valid_dataset = nlp.load_dataset(data_args.dataset_path, name=data_args.qg_format, split=nlp.Split.VALIDATION)
+    #https://github.com/patil-suraj/question_generation/issues/41
+    #https://github.com/huggingface/datasets/issues/443
+
+    #train_dataset, valid_dataset = datasets.load_dataset('data/squad_multitask', split=['train', 'validation'])
+    
+    # Replaced by datasets already??
+    #train_dataset = nlp.load_dataset(data_args.dataset_path, name=data_args.qg_format, split=nlp.Split.TRAIN)
+    #valid_dataset = nlp.load_dataset(data_args.dataset_path, name=data_args.qg_format, split=nlp.Split.VALIDATION)
+
+    print(data_args.dataset_path)
+    #TypeError: argument of type 'Value' is not iterable
+    train_dataset = datasets.load_dataset(data_args.dataset_path, split='train') #, name=data_args.qg_format
+    valid_dataset = datasets.load_dataset(data_args.dataset_path, name=data_args.qg_format, split='validation')
+    print(train_dataset)
+
+    if False:
+        print(train_dataset)
+        #time.sleep(3)
+
+        #Dirty but it works
+        def create_features(batch):
+            print(batch["question"])
+            source_text_encoding = tokenizer.batch_encode_plus(
+                batch["question"], #batch["source_text"],
+                max_length=data_args.max_source_length,
+                pad_to_max_length=True,
+                truncation=True)
+
+            target_text_encoding = tokenizer.batch_encode_plus(
+                batch["answers"], #batch["target_text"],
+                max_length=data_args.max_target_length,
+                pad_to_max_length=True,
+                truncation=True)
+
+            features = {
+                "source_ids": source_text_encoding["input_ids"],
+                "target_ids": target_text_encoding["input_ids"],
+                "attention_mask": source_text_encoding["attention_mask"]
+            }
+
+            return features
+
+        train_dataset = train_dataset.map(create_features, batched=True)
 
     processor = DataProcessor(
         tokenizer,
@@ -172,6 +223,8 @@ def main():
     
     train_dataset = processor.process(train_dataset)
     valid_dataset = processor.process(valid_dataset)
+
+    print(train_dataset)
 
     columns = ["source_ids", "target_ids", "attention_mask"]
     train_dataset.set_format(type='torch', columns=columns)
