@@ -69,7 +69,11 @@ class QGPipeline:
         else:
             qg_examples = self._prepare_inputs_for_qg_from_answers_hl(sents, answers)
         
-        print(qg_examples)
+        #Length is 0 for some reason
+        #print(qg_examples)
+        if len(qg_examples) == 0:
+            return []
+        
         qg_inputs = [example['source_text'] for example in qg_examples]
         questions = self._generate_questions(qg_inputs)
         output = [{'answer': example['answer'], 'question': que} for example, que in zip(qg_examples, questions)]
@@ -98,7 +102,9 @@ class QGPipeline:
             max_length=32,
         )
         
-        #Git Issue 90 solution
+        #print("inputs", inputs)
+        #print("outs", outs)
+        #Git Issue 90 solution (nope)
         dec = [self.ans_tokenizer.decode(ids, skip_special_tokens=True) for ids in outs]
         answers = [item.split('<sep>') for item in dec]
         answers = [i[:-1] for i in answers]
@@ -126,6 +132,9 @@ class QGPipeline:
     def _prepare_inputs_for_ans_extraction(self, text):
         sents = nltk.sent_tokenize(text)
 
+        #print("nltk.text", text)
+        #print("nltk.sents", sents)
+
         inputs = []
         for i in range(len(sents)):
             source_text = "extract answers:"
@@ -139,6 +148,7 @@ class QGPipeline:
                 source_text = source_text + " </s>"
             inputs.append(source_text)
 
+        #print("inputs", inputs)
         return sents, inputs
     
     def _prepare_inputs_for_qg_from_answers_hl(self, sents, answers):
@@ -149,13 +159,24 @@ class QGPipeline:
                 sent = sents[i].lower()
                 sents_copy = sents[:]
 
+                #<pad> <unk>икола <unk>есла
+                #print("answer_text", answer_text)
+
                 #Git PR 65
                 answer_text = re.sub("<pad> | <pad>", "", answer_text)
 
                 answer_text = answer_text.strip().lower()
+
+                #print("answer_text", answer_text)
+                #print("sent", sent)
                 
                 #Git Issue 90 solution
                 if answer_text not in sent:
+                    #print("Not found: ", answer_text, sent)
+                    answer_text = answer_text.split(" ")[0]
+
+                if answer_text not in sent:
+                    #print("Still not found: ", answer_text, sent)
                     continue
 
                 #Git PR 65
