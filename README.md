@@ -34,6 +34,8 @@ To test the scripts, run `zz*.ipynb` instead. Command lines are included.
 
 ## Notebook list
 - `zz1`: Original notebook in repo. **Clear**.
+- `zz1b`: Some corner case which may crash the original model. **Clear**.
+- `zz1c`: Fusing with BART, which is not completed in original repo. **In progress**.
 - `zz2`: Training and retrive score metric. **In progress**.
 - `zz3`: Minimal `e2e-qg` with score metric. **Clear**.
 - `zz3b`: Minimal `question-generation` with squad dataset. **Clear**.

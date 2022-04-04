@@ -56,13 +56,26 @@ class QGPipeline:
         else:
             self.model_type = "bart"
 
+        #qa model is not same as qg model!
+        if "T5ForConditionalGeneration" in self.ans_model.__class__.__name__:
+            self.ans_model_type = "t5"
+        else:
+            self.ans_model_type = "bart"
+
     def __call__(self, inputs: str):
         inputs = " ".join(inputs.split())
-        sents, answers = self._extract_answers(inputs)
-        flat_answers = list(itertools.chain(*answers))
-        
-        if len(flat_answers) == 0:
-          return []
+
+        #Found some other models using different highlight token
+        hl_token = "<hl>" if self.ans_model_type == "t5" else "[HL]"
+
+        if hl_token in inputs:
+            sents, answers = self._extract_answers_with_hl(inputs, hl_token)
+        else:
+            sents, answers = self._extract_answers(inputs)
+            flat_answers = list(itertools.chain(*answers))
+            
+            if len(flat_answers) == 0:
+                return []
 
         if self.qg_format == "prepend":
             qg_examples = self._prepare_inputs_for_qg_from_answers_prepend(inputs, answers)
@@ -70,7 +83,7 @@ class QGPipeline:
             qg_examples = self._prepare_inputs_for_qg_from_answers_hl(sents, answers)
         
         #Length is 0 for some reason
-        #print(qg_examples)
+        print("qg_examples", qg_examples)
         if len(qg_examples) == 0:
             return []
         
@@ -91,11 +104,36 @@ class QGPipeline:
         
         questions = [self.tokenizer.decode(ids, skip_special_tokens=True) for ids in outs]
         return questions
+
+    def _extract_answers_with_hl(self, context, hl_token):
+        sents = nltk.sent_tokenize(context)
+
+        print("nltk.text", context)
+        print("nltk.sents", sents)
+
+        #<hl> answer <hl>
+        #[HL]answer[HL]
+
+        #answers [['ans1'], ['ans2']]
+        #sents ['ctx1', 'ctx2']
+
+        answers = []
+        for sent in sents:
+            answer = sent.split(hl_token)[1:]
+            answers.append(answer)
+            
+        sents = [sent.replace(hl_token, "") for sent in sents]
+        print ("answers", answers)
+        print ("sents", sents)
+
+        return sents, answers
     
     def _extract_answers(self, context):
         sents, inputs = self._prepare_inputs_for_ans_extraction(context)
         inputs = self._tokenize(inputs, padding=True, truncation=True)
 
+        #CUDA error: CUBLAS_STATUS_NOT_INITIALIZED when calling `cublasCreate(handle)`
+        #when self.model != self.ans_model:
         outs = self.ans_model.generate(
             input_ids=inputs['input_ids'].to(self.device), 
             attention_mask=inputs['attention_mask'].to(self.device), 
@@ -104,11 +142,17 @@ class QGPipeline:
         
         #print("inputs", inputs)
         #print("outs", outs)
+        print("ans_tokenizer", self.ans_tokenizer)
+        target_token = '<sep>' if self.ans_model_type == "t5" else self.ans_tokenizer.sep_token #</s>
+        print("target_tokenizer", target_token)
         #Git Issue 90 solution (nope)
-        dec = [self.ans_tokenizer.decode(ids, skip_special_tokens=True) for ids in outs]
-        answers = [item.split('<sep>') for item in dec]
-        answers = [i[:-1] for i in answers]
+        dec = [self.ans_tokenizer.decode(ids, skip_special_tokens=True if self.ans_model_type == "t5" else False) for ids in outs]
+        print("dec", dec)
+        answers = [item.split(target_token) for item in dec]
+        answers = [i[:-1] for i in answers]  if self.ans_model_type == "t5" else [i[1:-1] for i in answers] 
         
+        print("answers", answers)
+        print("sents", sents)
         return sents, answers
     
     def _tokenize(self,
@@ -132,26 +176,33 @@ class QGPipeline:
     def _prepare_inputs_for_ans_extraction(self, text):
         sents = nltk.sent_tokenize(text)
 
-        #print("nltk.text", text)
-        #print("nltk.sents", sents)
+        print("nltk.text", text)
+        print("nltk.sents", sents)
+
+        #Found some other models using different highlight token
+        hl_token = "<hl>" if self.ans_model_type == "t5" else "[HL]"
 
         inputs = []
         for i in range(len(sents)):
             source_text = "extract answers:"
             for j, sent in enumerate(sents):
                 if i == j:
-                    sent = "<hl> %s <hl>" % sent
+                    sent = "%s %s %s" % (hl_token, sent, hl_token)
                 source_text = "%s %s" % (source_text, sent)
                 source_text = source_text.strip()
             
-            if self.model_type == "t5":
+            if self.ans_model_type == "t5":
                 source_text = source_text + " </s>"
             inputs.append(source_text)
 
-        #print("inputs", inputs)
+        print("inputs", inputs)
         return sents, inputs
     
     def _prepare_inputs_for_qg_from_answers_hl(self, sents, answers):
+        
+        #Found some other models using different highlight token
+        hl_token = "<hl>" if self.model_type == "t5" else "[HL]"
+
         inputs = []
         for i, answer in enumerate(answers):
             if len(answer) == 0: continue
@@ -160,15 +211,15 @@ class QGPipeline:
                 sents_copy = sents[:]
 
                 #<pad> <unk>икола <unk>есла
-                #print("answer_text", answer_text)
+                print("answer_text", answer_text)
 
                 #Git PR 65
                 answer_text = re.sub("<pad> | <pad>", "", answer_text)
 
                 answer_text = answer_text.strip().lower()
 
-                #print("answer_text", answer_text)
-                #print("sent", sent)
+                print("answer_text", answer_text)
+                print("sent", sent)
                 
                 #Git Issue 90 solution
                 if answer_text not in sent:
@@ -186,7 +237,7 @@ class QGPipeline:
                 except:
                     continue
                 
-                sent = f"{sent[:ans_start_idx]} <hl> {answer_text} <hl> {sent[ans_start_idx + len(answer_text): ]}"
+                sent = f"{sent[:ans_start_idx]} {hl_token} {answer_text} {hl_token} {sent[ans_start_idx + len(answer_text): ]}"
                 sents_copy[i] = sent
                 
                 source_text = " ".join(sents_copy)
@@ -295,6 +346,7 @@ class E2EQGPipeline:
             **generate_kwargs
         )
 
+        print(self.tokenizer)
         prediction = self.tokenizer.decode(outs[0], skip_special_tokens=True)
         questions = prediction.split("<sep>")
         questions = [question.strip() for question in questions[:-1]]
