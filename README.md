@@ -49,8 +49,8 @@ To test the scripts, run `zz*.ipynb` instead. Command lines are included.
 | [bart-squad-qg-hl](https://huggingface.co/p208p2002/bart-squad-qg-hl)             | 63.9967 | 48.2271 | 29.4501 | 27.5821 | 39.4924 |
 | [t5-base-e2e-qg](https://huggingface.co/valhalla/t5-base-e2e-qg)             | 57.8001 | 47.8133 | 34.1749 | 19.0514 | 35.0973 |
 | [t5-base-qg-hl](https://huggingface.co/valhalla/t5-base-qg-hl)             | 69.8286 | 53.4806 | 34.1254 | 21.7064 | 34.8645 |
-| [t5-small-e2e-qg](https://huggingface.co/valhalla/t5-small-e2e-qg)             | 67.5752 | 54.8573 | 38.3190 | 17.9115 | 33.9353 |
-| [t5-small-qg-hl](https://huggingface.co/valhalla/t5-small-qg-hl)           | 67.4076 | 51.3275 | 32.6496 | 20.8759 | 34.5611 |
+| [t5-small-e2e-qg](https://huggingface.co/valhalla/t5-small-e2e-qg)             | 53.2628 | 43.6088 | 30.6282 | 17.7136 | 33.5326 |
+| [t5-small-qg-hl](https://huggingface.co/valhalla/t5-small-qg-hl)           | 69.4194 | 53.1734 | 33.8424 | 21.2269 | 34.09251 |
 
 ## Project Details
 Question generation is the task of automatically generating questions from a text paragraph. The most straight-forward way for this is answer aware question generation. In answer aware question generation the model is presented with the answer and the passage and asked to generate a question for that answer by considering the passage context. While there are many papers available for QG task, it's still not as mainstream as QA. One of the reasons is most of the earlier papers use complicated models/processing pipelines and have no pre-trained models available. Few recent papers, specifically UniLM and ProphetNet have SOTA pre-trained weights availble for QG but the usage seems quite complicated. 
