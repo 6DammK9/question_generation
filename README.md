@@ -46,7 +46,7 @@ To test the scripts, run `zz*.ipynb` instead. Command lines are included.
 
 | Name                                                                       | BLEU-1  | BLEU-2  | BLEU-4  | METEOR  | ROUGE-L |
 |----------------------------------------------------------------------------|---------|---------|---------|---------|---------
-| [bart-squad-qg-hl](https://huggingface.co/p208p2002/bart-squad-qg-hl)             | 63.9967 | 48.2271 | 29.4501 | 27.5821 | 39.4924 |
+| [bart-squad-qg-hl](https://huggingface.co/p208p2002/bart-squad-qg-hl)             | 67.0877 | 51.0051 | 31.2478 | 26.7013 | 31.6968 |
 | [t5-base-e2e-qg](https://huggingface.co/valhalla/t5-base-e2e-qg)             | 57.8001 | 47.8133 | 34.1749 | 19.0514 | 35.0973 |
 | [t5-base-qg-hl](https://huggingface.co/valhalla/t5-base-qg-hl)             | 69.8286 | 53.4806 | 34.1254 | 21.7064 | 34.8645 |
 | [t5-small-e2e-qg](https://huggingface.co/valhalla/t5-small-e2e-qg)             | 53.2628 | 43.6088 | 30.6282 | 17.7136 | 33.5326 |
