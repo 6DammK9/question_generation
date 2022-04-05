@@ -39,7 +39,9 @@ To test the scripts, run `zz*.ipynb` instead. Command lines are included.
 - `zz2`: Training and retrive score metric. **In progress**.
 - `zz3`: Minimal `e2e-qg` with score metric. **Clear**.
 - `zz3b`: Minimal `question-generation` with squad dataset. **Clear**.
-- `zz3c`: Full squad validation set on small / base model. **Clear**.
+- `zz3c` (4x): Full squad validation set on small / base model. **Clear**.
+- `zz4a`: BART base with supervised highlighted answer. **Clear**.
+- `zz4b`: T5 base with supervised highlighted answer. **Clear**.
 
 ## Results
 - Different from forked version. Score is based on full validation set of squad v1.1.
@@ -47,11 +49,11 @@ To test the scripts, run `zz*.ipynb` instead. Command lines are included.
 | Name                                                                       | BLEU-1  | BLEU-2  | BLEU-4  | METEOR  | ROUGE-L |
 |----------------------------------------------------------------------------|---------|---------|---------|---------|---------
 | [t5-base-e2e-qg](https://huggingface.co/valhalla/t5-base-e2e-qg) Supervised       | 68.6667 | 53.0235 | 33.7465 | 28.5125 | 32.7107 |
-| [bart-squad-qg-hl](https://huggingface.co/p208p2002/bart-squad-qg-hl)             | 67.0877 | 51.0051 | 31.2478 | 26.7013 | 31.6968 |
-| [t5-base-e2e-qg](https://huggingface.co/valhalla/t5-base-e2e-qg)             | 57.8001 | 47.8133 | 34.1749 | 19.0514 | 35.0973 |
-| [t5-base-qg-hl](https://huggingface.co/valhalla/t5-base-qg-hl)             | 69.8286 | 53.4806 | 34.1254 | 21.7064 | 34.8645 |
-| [t5-small-e2e-qg](https://huggingface.co/valhalla/t5-small-e2e-qg)             | 53.2628 | 43.6088 | 30.6282 | 17.7136 | 33.5326 |
-| [t5-small-qg-hl](https://huggingface.co/valhalla/t5-small-qg-hl)           | 69.4194 | 53.1734 | 33.8424 | 21.2269 | 34.09251 |
+| [bart-squad-qg-hl](https://huggingface.co/p208p2002/bart-squad-qg-hl) Supervised    | 67.0877 | 51.0051 | 31.2478 | 26.7013 | 31.6968 |
+| [t5-base-e2e-qg](https://huggingface.co/valhalla/t5-base-e2e-qg) Unsupervised    | 57.8001 | 47.8133 | 34.1749 | 19.0514 | 35.0973 |
+| [t5-base-qg-hl](https://huggingface.co/valhalla/t5-base-qg-hl) Unsupervised   | 69.8286 | 53.4806 | 34.1254 | 21.7064 | 34.8645 |
+| [t5-small-e2e-qg](https://huggingface.co/valhalla/t5-small-e2e-qg) Unsupervised    | 53.2628 | 43.6088 | 30.6282 | 17.7136 | 33.5326 |
+| [t5-small-qg-hl](https://huggingface.co/valhalla/t5-small-qg-hl) Unsupervised   | 69.4194 | 53.1734 | 33.8424 | 21.2269 | 34.09251 |
 
 ## Project Details
 Question generation is the task of automatically generating questions from a text paragraph. The most straight-forward way for this is answer aware question generation. In answer aware question generation the model is presented with the answer and the passage and asked to generate a question for that answer by considering the passage context. While there are many papers available for QG task, it's still not as mainstream as QA. One of the reasons is most of the earlier papers use complicated models/processing pipelines and have no pre-trained models available. Few recent papers, specifically UniLM and ProphetNet have SOTA pre-trained weights availble for QG but the usage seems quite complicated. 
